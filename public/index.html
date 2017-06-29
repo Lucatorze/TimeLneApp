@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8">
         <title>TileLineApp</title>
-            
+        
         <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
-        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="css/main.css">
     </head>
     <body ng-app="tchatApp" class="container" ng-controller="TimeLineController as tl">
         
@@ -13,52 +13,54 @@
             <h3>Comment vous appelez vous? :</h3>
             <form class="form-inline" name="loginForm" ng-submit="tl.loginUser()">
                 <input type="text" class="form-control" placeholder="Votre pseudo ..." required ng-model="tl.pseudo">
-                <input type="submit" class="btn btn-primary" value="Rejoindre">
+                <input type="submit" class="btn btn-primary" value="Se connecter">
             </form>
         </div>
-            
+        
         <div ng-hide="tl.isDisconnected">
             <main class="col-md-9 col-md-offset-3">
                 <h1> Bienvenue <strong>{{tl.pseudo}}</strong></h1>
                 <div class="well col-md-12">
                     <form class="form-inline" name="messageForm" ng-submit="tl.sendPublication()">
                         
-                        <input type="text" class="form-control" placeholder="Url de l'image ..." size="50" ng-model="tl.img" required><br>
+                        <input type="text" class="form-control" placeholder="Url de l'image ..." size="50" ng-model="tl.img"><br>
                         <textarea class="form-control" placeholder="Votre message ..." size="50" ng-model="tl.messageText" required></textarea><br>
                         <input type="submit" class="btn btn-primary" value="Envoyer">
                     </form>
                 </div>
                 <h2>Publication :</h2>
                 <br>
-                <div ng-repeat="message in tl.messages">
+                <div ng-repeat="post in tl.posts">
                     <div class="media">
                         <div class="media-left">
                             <a href="#">
-                                <img class="media-object" src="{{message.img}}" alt="...">
+                                <img class="media-object" width="200" src="{{post.img}}" alt="...">
                             </a>
                         </div>
                         <div class="media-body">
-                            <h4 class="media-heading">Par {{message.pseudo}}</h4>
-                            {{message.text}}
+                            <h4 class="media-heading">Par {{post.pseudo}}</h4>
+                            <h5>Le {{post.date}}</h5>
+                            {{post.text}}<br>
+                            <br>
+                            <input type="button" value="Supprimer" class="btn btn-danger" ng-click="tl.delete()">
                         </div>
                     </div>
                     <hr>
                 </div>
-                    
+                
             </main>
         </div>
-            
+        
         <script src="/node_modules/angular/angular.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script>
-            angular
-                    .module('tchatApp', [])
-                    .controller('TimeLineController', function($scope) {
-                        var tl = this;
+            angular.module('tchatApp', []).controller('TimeLineController', function($scope) {
+                
+                var tl = this;
                 
                 tl.isDisconnected = true;
                 
-                tl.messages = [];                
+                tl.posts = [];                
                 
                 tl.pseudo      = '';
                 tl.img = '';
@@ -70,28 +72,52 @@
                     
                     tl.socket = io('ws://localhost:50666');
                     
-                    tl.socket.emit('setPseudo', tl.pseudo);
+                    tl.socket.emit('setConnexion', tl.pseudo);
                     
-                    tl.socket.on('message', function(message) {
-                        tl.messages.push(message); 
+                    tl.socket.on('postList', function(postList) {
+                        tl.posts = postList;
+                        $scope.$apply();
+                    });
+                    
+                    tl.socket.on('message', function(data) {
+                        tl.posts.push({
+                            pseudo : data.pseudo,
+                            img : data.img,
+                            date : data.date,
+                            text : data.text
+                        });
                         $scope.$apply(); 
                     });
                 }; 
                 
                 tl.sendPublication = function() {
-                    if (tl.img.trim() === '') return; 
                     if (tl.messageText.trim() === '') return; 
                     
+                    if(!tl.img){
+                        tl.img = '/img/default.png'
+                    }
+                    
+                    var d = new Date();
+                    var curr_date = d.getDate();
+                    var curr_month = d.getMonth();
+                    curr_month++;
+                    if(curr_month < 10){
+                        curr_month = '0'+curr_month;
+                    }
+                    var curr_year = d.getFullYear();
+                    
                     var messageDetails = {  
-                        img : tl.img,  
+                        img : tl.img,
+                        date : curr_date + "/" + curr_month + "/" + curr_year,
                         text : tl.messageText  
                     }; 
                     
                     tl.socket.emit('message', messageDetails);
                     
-                    tl.messages.push( {
+                    tl.posts.push( {
                         pseudo : tl.pseudo,
                         img : tl.img,
+                        date : curr_date + "/" + curr_month + "/" + curr_year,
                         text : tl.messageText
                     } );
                     
@@ -102,6 +128,6 @@
             });
             
         </script>
-            
+        
     </body>
 </html>

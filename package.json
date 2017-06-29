@@ -12,6 +12,7 @@
     "angular": "^1.6.4",
     "bootstrap": "^3.3.7",
     "express": "^4.15.3",
+    "node-datetime": "^1.0.1",
     "path": "^0.12.7",
     "socket.io": "^2.0.3"
   }

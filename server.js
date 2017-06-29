@@ -1,4 +1,5 @@
 const path = require('path');
+const dateTime = require('node-datetime');
 const express = require('express');
 const app = express();
 const server = require('http').Server(app);
@@ -7,25 +8,48 @@ const io = require('socket.io')(server);
 app.use( '/node_modules', express.static(path.join(__dirname, 'node_modules')) ); 
 app.use( express.static(path.join(__dirname, 'public')) );
 
+let postList = [];
+
 io.on('connection', socket => {
-    let messageArray = {};
     const currentUser = {
         id     : null,
         pseudo : null
     };
     
-    socket.on('setPseudo', pseudo => {
+    const post = {
+        pseudo : null,
+        date   : null,
+        img    : null,
+        text   : null
+    };
+    
+    socket.on('setConnexion', pseudo => {
         currentUser.id     = socket.id;
         currentUser.pseudo = pseudo;
+        
+        socket.emit('postList', postList);
     });
-
+    
+    
     socket.on('message', (data) => {
-        messageArray.push( {
+        var dt = dateTime.create();
+        var formatted = dt.format('d/m/Y');
+        
+        post.pseudo = currentUser.pseudo;
+        post.date   = formatted;
+        post.img    = data.img;
+        post.text   = data.text;
+        
+        postList.push(post);
+        
+        console.log(postList);
+        
+        socket.broadcast.emit('message', {
             pseudo : currentUser.pseudo,
+            date : formatted,
             img : data.img,
-            text : data.messageText
+            text : data.text
         });
-        socket.broadcast.emit('message', messageArray);
     });
 
     socket.on('disconnect', () => {
@@ -35,6 +59,6 @@ io.on('connection', socket => {
 });
 
 const port = process.env.PORT || 50666;
-server.listen(port, () => console.log(`le serveur écoute sur le port ${port}`));
+server.listen(port, () => console.log(`Mon serveur fonctionne sur http://localhost:${port}`));
 
 
