@@ -41,9 +41,7 @@ io.on('connection', socket => {
         post.text   = data.text;
         
         postList.push(post);
-        
-        console.log(postList);
-        
+                
         socket.broadcast.emit('message', {
             pseudo : currentUser.pseudo,
             date : formatted,
