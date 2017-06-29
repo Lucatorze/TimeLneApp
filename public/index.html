@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>TileLineApp</title>
+            
+        <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body ng-app="tchatApp" class="container" ng-controller="TimeLineController as tl">
+        
+        <div ng-show="tl.isDisconnected">
+            <h3>Comment vous appelez vous? :</h3>
+            <form class="form-inline" name="loginForm" ng-submit="tl.loginUser()">
+                <input type="text" class="form-control" placeholder="Votre pseudo ..." required ng-model="tl.pseudo">
+                <input type="submit" class="btn btn-primary" value="Rejoindre">
+            </form>
+        </div>
+            
+        <div ng-hide="tl.isDisconnected">
+            <main class="col-md-9 col-md-offset-3">
+                <h1> Bienvenue <strong>{{tl.pseudo}}</strong></h1>
+                <div class="well col-md-12">
+                    <form class="form-inline" name="messageForm" ng-submit="tl.sendPublication()">
+                        
+                        <input type="text" class="form-control" placeholder="Url de l'image ..." size="50" ng-model="tl.img" required><br>
+                        <textarea class="form-control" placeholder="Votre message ..." size="50" ng-model="tl.messageText" required></textarea><br>
+                        <input type="submit" class="btn btn-primary" value="Envoyer">
+                    </form>
+                </div>
+                <h2>Publication :</h2>
+                <br>
+                <div ng-repeat="message in tl.messages">
+                    <div class="media">
+                        <div class="media-left">
+                            <a href="#">
+                                <img class="media-object" src="{{message.img}}" alt="...">
+                            </a>
+                        </div>
+                        <div class="media-body">
+                            <h4 class="media-heading">Par {{message.pseudo}}</h4>
+                            {{message.text}}
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+                    
+            </main>
+        </div>
+            
+        <script src="/node_modules/angular/angular.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            angular
+                    .module('tchatApp', [])
+                    .controller('TimeLineController', function($scope) {
+                        var tl = this;
+                
+                tl.isDisconnected = true;
+                
+                tl.messages = [];                
+                
+                tl.pseudo      = '';
+                tl.img = '';
+                tl.messageText = '';
+                
+                tl.loginUser = function() {
+                    
+                    tl.isDisconnected = false;
+                    
+                    tl.socket = io('ws://localhost:50666');
+                    
+                    tl.socket.emit('setPseudo', tl.pseudo);
+                    
+                    tl.socket.on('message', function(message) {
+                        tl.messages.push(message); 
+                        $scope.$apply(); 
+                    });
+                }; 
+                
+                tl.sendPublication = function() {
+                    if (tl.img.trim() === '') return; 
+                    if (tl.messageText.trim() === '') return; 
+                    
+                    var messageDetails = {  
+                        img : tl.img,  
+                        text : tl.messageText  
+                    }; 
+                    
+                    tl.socket.emit('message', messageDetails);
+                    
+                    tl.messages.push( {
+                        pseudo : tl.pseudo,
+                        img : tl.img,
+                        text : tl.messageText
+                    } );
+                    
+                    tl.img = ''; 
+                    tl.messageText = ''; 
+                }; 
+                
+            });
+            
+        </script>
+            
+    </body>
+</html>
